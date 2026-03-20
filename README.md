@@ -1,7 +1,6 @@
 # IgStrand-Align
 
 Understanding the three-dimensional structure of immunoglobulin (Ig) domains in the context of two-dimensional representative maps is critical for advancing biological insights.  
-
 While one-dimensional (1D) protein sequence information is limited to the linear order of amino acid residues, two-dimensional (2D) representations incorporate structural annotations that connect sequence with topology. These representations highlight biologically relevant features such as:  
 
 - Interacting residues  
