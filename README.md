@@ -10,7 +10,7 @@ IgStrand-Align maps immunoglobulin-domain structures into a shared IgStrand numb
 Clone the repository, create a virtual environment, and install it in editable mode:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/umeshkhaniya/IgStrand-Align.git
 cd IgStrand-Align
 python3 -m venv .venv
 source .venv/bin/activate
