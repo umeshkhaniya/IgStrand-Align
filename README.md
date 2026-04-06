@@ -1,91 +1,180 @@
 # IgStrand-Align
 
-Understanding the three-dimensional structure of immunoglobulin (Ig) domains in the context of two-dimensional representative maps is critical for advancing biological insights.  
-While one-dimensional (1D) protein sequence information is limited to the linear order of amino acid residues, two-dimensional (2D) representations incorporate structural annotations that connect sequence with topology. These representations highlight biologically relevant features such as:  
+IgStrand-Align maps immunoglobulin-domain structures into a shared IgStrand numbering space and exports both:
 
-- Interacting residues  
-- Cross-links  
-- Surface accessibility  
-- Orientation and strand pairing  
-- Structural motifs within Ig folds  
+- `1D` residue-alignment tables
+- `2D` topology-style Excel layouts based on domain templates
+- native `2D` SVG diagrams
 
-The goal of **IgStrand-Align** is to bridge **sequence (1D)** and **structure (2D)** by providing alignment tools and mapping functions based on the IgStrand numbering scheme. This enables systematic comparison of Ig domains and facilitates structural and functional analysis across large datasets.  
+## Installation
 
----
-
-## Features
-- Generate **1D sequence alignments** for Ig domains  
-- Produce **2D topological maps** annotated with structural features  
-- Map residue positions consistently using the **IgStrand numbering scheme**  
-- Export alignments for visualization and downstream analysis  
-
----
-
-## Usage
-Run the main script with:
+Clone the repository and install it in editable mode:
 
 ```bash
-python src/main_script.py [-h] -f FILE -d DIMENSION
+git clone <repo-url>
+cd IgStrand-Align
+python3 -m pip install -e .
 ```
-### Arguments
 
-- -h : Show help message and exit
+Core Python dependency:
 
-- -f FILE : Input file containing PDB ID, chain ID, and domain number
+- `openpyxl` for writing Excel output
 
-- -d DIMENSION : Output type, choose one of:
+External runtime dependency:
 
-  - 1D : Generate 1D representation
-  
-  - 2D : Generate 2D representation
-  
-  - 1D,2D : Generate both 1D and 2D representations
+- `node` for generating new IgStrand numbering files when a structure is not already cached in `input/number_mapping_files/`
 
-### Example Input File (`input.txt`)
+If you only use the bundled cached mapping files, Node is not required for those inputs.
+
+## Example Input
+
+Input files are whitespace-delimited with one domain request per line:
 
 ```text
 1RHH B 1
 5ESV D 1
 ```
 
-Each line contains:
+Each line means:
 
-  - PDB ID
-  
-  - Chain ID
-  
-  - Domain number
-### Example Commands
+- `PDB ID`
+- `chain ID`
+- `domain index` within that chain, using 1-based numbering after domain normalization
 
-  ### Generate 1D representation only
-  ```bash
-  python src/main_script.py -f input.txt -d 1D
-  ```
-  ### Generate 2D representation only
-  ```bash
-  python src/main_script.py -f input.txt -d 2D
-  ```
-  ### Generate both 1D and 2D representations
-  ```bash
-  python src/main_script.py -f input.txt -d 1D,2D
- ```
-### Output
-  - 1D alignment: Shows aligned sequences for domains from the input file, including reference PDB, Ig type, and sequence information, color-coded by the IgStrand numbering scheme.
-  
-  - 2D alignment: Provides 2D structural annotations and topological information for each specified domain
+The repository includes a sample input file at [`src/input.txt`](./src/input.txt).
 
----
+## Example Output
 
+Typical outputs are written into [`output/`](./output):
 
-## Applications
+- `1D_mapping_<input-stem>igstrand.xlsx`
+- `2D_mapping_<input-stem>igstrand.xlsx`
+- `2D_mapping_<input-stem>igstrand.svg`
 
-- Comparative analysis of Ig domains
+For the bundled sample input, that means files like:
 
-- Mapping sequence to structure for antibody engineering
+- `output/1D_mapping_inputigstrand.xlsx`
+- `output/2D_mapping_inputigstrand.xlsx`
 
-- Understanding evolutionary variation within Ig folds
+`1D` output contains one row per requested domain plus metadata columns such as reference structure, Ig type, TM-score, residue ranges, and one column for each IgStrand position.
 
-- Structural annotation in immunogenomics pipelines
+`2D` output places each requested domain into a template-shaped panel, fills template numbering positions with residue identities, and preserves background coloring for loops and strand segments.
 
+The native `SVG` output is a direct vector rendering of the 2D panel data. It does not depend on Excel export, so it is easier to use in web pages, figures, and downstream graphics workflows.
 
+## CLI Usage
 
+The new modular CLI is:
+
+```bash
+igstrand-align -f src/input.txt -d 1D
+```
+
+You can also invoke it directly with Python:
+
+```bash
+PYTHONPATH=src python3 -m igstrand_align.cli -f src/input.txt -d 1D,2D
+```
+
+Arguments:
+
+- `-f`, `--file`: input file containing `PDB chain domain`
+- `-d`, `--dimension`: one of `1D`, `2D`, or `1D,2D`
+- `--format`: `xlsx` or `svg`
+
+Examples:
+
+```bash
+igstrand-align -f src/input.txt -d 1D
+igstrand-align -f src/input.txt -d 2D
+igstrand-align -f src/input.txt -d 1D,2D
+igstrand-align -f src/input.txt -d 2D --format svg
+```
+
+Format support:
+
+- `1D` currently supports `xlsx`
+- `2D` supports `xlsx` and `svg`
+- `pdf` is not implemented yet
+
+The compatibility entry point still exists:
+
+```bash
+python3 src/main_script.py -f src/input.txt -d 1D,2D
+```
+
+That wrapper delegates to the modular package CLI, so both commands use the same implementation path.
+
+## Algorithm
+
+At a high level the pipeline works in four stages.
+
+### 1. Numbering
+
+For each requested PDB ID, the tool looks for a cached numbering file in `input/number_mapping_files/`.
+
+- If the file exists, it is parsed directly.
+- If it does not exist, the Node script [`src/refnum.js`](./src/refnum.js) is invoked to generate a new IgStrand numbering document using `icn3d`.
+
+This numbering document contains:
+
+- detected Ig-like domains
+- the best matching reference structure
+- alignment statistics such as TM-score and sequence identity
+- per-residue IgStrand assignments
+
+### 2. Domain Detection
+
+The parser filters the numbering document down to the requested `PDB + chain`.
+
+Each candidate domain is normalized by:
+
+- parsing residue-to-IgStrand assignments
+- extracting residue ranges
+- mapping `refpdbname` to an Ig-domain class like `IgV`, `IgC1`, or `IgI`
+- re-sorting domains by Ig-domain residue range so user-facing domain numbering is stable
+
+### 3. 1D Alignment
+
+For `1D` output, the tool:
+
+- collects all IgStrand labels observed across the requested domains
+- sorts them into a reproducible alignment order
+- writes one spreadsheet row per domain
+- fills each IgStrand column with the corresponding residue identity when present
+
+Cells are color-coded by strand family, with loop positions highlighted separately.
+
+### 4. 2D Alignment
+
+For `2D` output, the tool:
+
+- chooses an Excel template based on the domain class
+- converts full IgStrand labels like `C'4548` into numeric template positions like `4548`
+- overlays residue letters onto the template
+- preserves template styling and shifts each rendered panel side-by-side into the output workbook
+
+For `IgV` domains, template selection also checks whether the numbering contains strand `A`, strand `A'`, or both.
+
+When `--format svg` is used, the pipeline skips Excel writing and instead renders each resolved domain as a vector panel with:
+
+- a metadata header
+- grouped strand rows
+- one colored residue box per IgStrand position
+- vector text suitable for figure generation or web embedding
+
+## Repository Layout
+
+Key directories:
+
+- [`src/igstrand_align`](./src/igstrand_align): modular package
+- [`src/refnum.js`](./src/refnum.js): Node helper for generating new numbering files
+- [`input/number_mapping_files`](./input/number_mapping_files): cached numbering JSON files
+- [`input/igstrand_template`](./input/igstrand_template): 2D Excel templates
+- [`output`](./output): generated workbooks
+
+## Notes
+
+- The modular package currently expects to run from a repository checkout because it uses the repository’s bundled templates and cached mapping files.
+- If `openpyxl` is missing, the CLI can still parse and align in memory, but it cannot write Excel output.
+- `SVG` output for `2D` does not require `openpyxl`.
