@@ -1,0 +1,2 @@
+[console_scripts]
+igstrand-align = igstrand_align.cli:main
