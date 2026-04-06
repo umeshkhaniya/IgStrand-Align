@@ -11,7 +11,6 @@ from .core.models import OutputArtifact, StructureRequest
 from .domain_detection.detector import DomainDetector
 from .io.output_writer_1d import OutputWriter1D
 from .io.output_writer_2d import OutputWriter2D
-from .io.output_writer_2d_svg import OutputWriter2DSvg
 from .numbering.service import NumberingService
 
 
@@ -26,7 +25,6 @@ class IgStrandAlignApp:
     alignment_2d_builder: Alignment2DBuilder
     output_writer_1d: OutputWriter1D
     output_writer_2d: OutputWriter2D
-    output_writer_2d_svg: OutputWriter2DSvg
 
     def resolve_domains(self, requests: Sequence[StructureRequest]):
         """Resolve the requested domains into normalized records."""
@@ -57,7 +55,6 @@ class IgStrandAlignApp:
         requests: Sequence[StructureRequest],
         dimensions: Iterable[str],
         input_file_name: str,
-        output_format: str = "xlsx",
     ) -> list[OutputArtifact]:
         """Build and persist outputs for the requested dimensions."""
         dimension_set = {dim.strip() for dim in dimensions if dim.strip()}
@@ -66,10 +63,6 @@ class IgStrandAlignApp:
         output_stem = Path(input_file_name).stem
 
         if "1D" in results:
-            if output_format != "xlsx":
-                raise NotImplementedError(
-                    "1D output currently supports only the 'xlsx' format."
-                )
             destination = (
                 self.config.output_dir
                 / f"1D_mapping_{output_stem}{self.config.numbering_name.lower()}.xlsx"
@@ -78,15 +71,11 @@ class IgStrandAlignApp:
             artifacts.append(OutputArtifact(dimension="1D", path=str(written_path)))
 
         if "2D" in dimension_set:
-            suffix = "svg" if output_format == "svg" else "xlsx"
             destination = (
                 self.config.output_dir
-                / f"2D_mapping_{output_stem}{self.config.numbering_name.lower()}.{suffix}"
+                / f"2D_mapping_{output_stem}{self.config.numbering_name.lower()}.xlsx"
             )
-            if output_format == "svg":
-                written_path = self.output_writer_2d_svg.write(results["2D"], destination)
-            else:
-                written_path = self.output_writer_2d.write(results["2D"], destination)
+            written_path = self.output_writer_2d.write(results["2D"], destination)
             artifacts.append(OutputArtifact(dimension="2D", path=str(written_path)))
 
         return artifacts

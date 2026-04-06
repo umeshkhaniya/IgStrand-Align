@@ -27,7 +27,6 @@ src/igstrand_align/io/input_reader.py
 src/igstrand_align/io/mapping_repository.py
 src/igstrand_align/io/output_writer_1d.py
 src/igstrand_align/io/output_writer_2d.py
-src/igstrand_align/io/output_writer_2d_svg.py
 src/igstrand_align/io/template_repository.py
 src/igstrand_align/numbering/__init__.py
 src/igstrand_align/numbering/cache.py

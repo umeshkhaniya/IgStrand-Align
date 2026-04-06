@@ -2,17 +2,18 @@
 
 import argparse
 from pathlib import Path
+import sys
 
 from .alignment.alignment_1d import Alignment1DBuilder
 from .alignment.alignment_2d import Alignment2DBuilder
 from .app import IgStrandAlignApp
 from .core.config import AppConfig
+from .core.exceptions import IgStrandAlignError
 from .domain_detection.detector import DomainDetector
 from .io.input_reader import read_structure_requests
 from .io.mapping_repository import MappingRepository
 from .io.output_writer_1d import OutputWriter1D
 from .io.output_writer_2d import OutputWriter2D
-from .io.output_writer_2d_svg import OutputWriter2DSvg
 from .io.template_repository import TemplateRepository
 from .numbering.icn3d_refnum_runner import Icn3dRefnumRunner
 from .numbering.parser import NumberingParser
@@ -33,13 +34,8 @@ def build_parser() -> argparse.ArgumentParser:
         "-d",
         "--dimension",
         required=True,
+        choices=["1D", "2D", "1D,2D", "2D,1D"],
         help="Output dimension: 1D, 2D, or 1D,2D.",
-    )
-    parser.add_argument(
-        "--format",
-        choices=["xlsx", "svg"],
-        default="xlsx",
-        help="Output format. 'svg' is currently supported for 2D output only.",
     )
     return parser
 
@@ -71,7 +67,6 @@ def build_app() -> IgStrandAlignApp:
             numbering_name=config.numbering_name,
             template_dimensions=config.template_dimensions,
         ),
-        output_writer_2d_svg=OutputWriter2DSvg(),
     )
 
 
@@ -80,14 +75,17 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    app = build_app()
-    requests = read_structure_requests(args.file)
-    artifacts = app.write_outputs(
-        requests=requests,
-        dimensions=args.dimension.split(","),
-        input_file_name=args.file,
-        output_format=args.format,
-    )
+    try:
+        app = build_app()
+        requests = read_structure_requests(args.file)
+        artifacts = app.write_outputs(
+            requests=requests,
+            dimensions=args.dimension.split(","),
+            input_file_name=args.file,
+        )
+    except IgStrandAlignError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
     for artifact in artifacts:
         print(f"{artifact.dimension} output written to {artifact.path}")

@@ -4,7 +4,7 @@ from copy import copy
 from pathlib import Path
 
 from ..alignment.color_rules import STRAND_COLOR_MAP_2D
-from ..core.exceptions import MissingTemplateError
+from ..core.exceptions import DependencyError, MissingTemplateError
 
 
 class OutputWriter2D:
@@ -35,7 +35,7 @@ class OutputWriter2D:
             from openpyxl import Workbook, load_workbook
             from openpyxl.styles import Alignment, Font, PatternFill
         except ModuleNotFoundError as exc:
-            raise RuntimeError(
+            raise DependencyError(
                 "Writing 2D Excel output requires the 'openpyxl' package."
             ) from exc
 

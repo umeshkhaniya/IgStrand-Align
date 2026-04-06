@@ -3,10 +3,15 @@
 from pathlib import Path
 
 from ..alignment.color_rules import STRAND_COLOR_MAP_1D
+from ..core.exceptions import DependencyError
 
 
 class OutputWriter1D:
     """Render a 1D alignment result into an output artifact."""
+
+    def __init__(self):
+        self._font_cls = None
+        self._pattern_fill_cls = None
 
     @staticmethod
     def _split_ig_label(number_string: str):
@@ -20,6 +25,9 @@ class OutputWriter1D:
             cell.value = ""
             return
 
+        if self._font_cls is None or self._pattern_fill_cls is None:
+            raise RuntimeError("OpenPyXL styles were not initialized before writing cells.")
+
         cell.value = residue_mapping.residue_code
         if residue_mapping.ig_label.endswith("50"):
             color_code = "FFD700"
@@ -29,21 +37,24 @@ class OutputWriter1D:
             strand_label, _ = self._split_ig_label(residue_mapping.ig_label)
             color_code = STRAND_COLOR_MAP_1D.get(strand_label.strip("+-_"), "FFFFFF")
 
-        cell.fill = PatternFill(
+        cell.fill = self._pattern_fill_cls(
             start_color=color_code,
             end_color=color_code,
             fill_type="solid",
         )
-        cell.font = Font(size=12)
+        cell.font = self._font_cls(size=12)
 
     def write(self, result, destination):
         try:
             from openpyxl import Workbook
             from openpyxl.styles import Font, PatternFill
         except ModuleNotFoundError as exc:
-            raise RuntimeError(
+            raise DependencyError(
                 "Writing 1D Excel output requires the 'openpyxl' package."
             ) from exc
+
+        self._font_cls = Font
+        self._pattern_fill_cls = PatternFill
 
         workbook = Workbook()
         worksheet = workbook.active

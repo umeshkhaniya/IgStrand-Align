@@ -4,15 +4,16 @@ IgStrand-Align maps immunoglobulin-domain structures into a shared IgStrand numb
 
 - `1D` residue-alignment tables
 - `2D` topology-style Excel layouts based on domain templates
-- native `2D` SVG diagrams
 
 ## Installation
 
-Clone the repository and install it in editable mode:
+Clone the repository, create a virtual environment, and install it in editable mode:
 
 ```bash
 git clone <repo-url>
 cd IgStrand-Align
+python3 -m venv .venv
+source .venv/bin/activate
 python3 -m pip install -e .
 ```
 
@@ -49,7 +50,6 @@ Typical outputs are written into [`output/`](./output):
 
 - `1D_mapping_<input-stem>igstrand.xlsx`
 - `2D_mapping_<input-stem>igstrand.xlsx`
-- `2D_mapping_<input-stem>igstrand.svg`
 
 For the bundled sample input, that means files like:
 
@@ -59,8 +59,6 @@ For the bundled sample input, that means files like:
 `1D` output contains one row per requested domain plus metadata columns such as reference structure, Ig type, TM-score, residue ranges, and one column for each IgStrand position.
 
 `2D` output places each requested domain into a template-shaped panel, fills template numbering positions with residue identities, and preserves background coloring for loops and strand segments.
-
-The native `SVG` output is a direct vector rendering of the 2D panel data. It does not depend on Excel export, so it is easier to use in web pages, figures, and downstream graphics workflows.
 
 ## CLI Usage
 
@@ -80,7 +78,6 @@ Arguments:
 
 - `-f`, `--file`: input file containing `PDB chain domain`
 - `-d`, `--dimension`: one of `1D`, `2D`, or `1D,2D`
-- `--format`: `xlsx` or `svg`
 
 Examples:
 
@@ -88,13 +85,12 @@ Examples:
 igstrand-align -f src/input.txt -d 1D
 igstrand-align -f src/input.txt -d 2D
 igstrand-align -f src/input.txt -d 1D,2D
-igstrand-align -f src/input.txt -d 2D --format svg
 ```
 
-Format support:
+Output format:
 
-- `1D` currently supports `xlsx`
-- `2D` supports `xlsx` and `svg`
+- `1D` writes `xlsx`
+- `2D` writes `xlsx`
 - `pdf` is not implemented yet
 
 The compatibility entry point still exists:
@@ -156,13 +152,6 @@ For `2D` output, the tool:
 
 For `IgV` domains, template selection also checks whether the numbering contains strand `A`, strand `A'`, or both.
 
-When `--format svg` is used, the pipeline skips Excel writing and instead renders each resolved domain as a vector panel with:
-
-- a metadata header
-- grouped strand rows
-- one colored residue box per IgStrand position
-- vector text suitable for figure generation or web embedding
-
 ## Repository Layout
 
 Key directories:
@@ -176,5 +165,4 @@ Key directories:
 ## Notes
 
 - The modular package currently expects to run from a repository checkout because it uses the repository’s bundled templates and cached mapping files.
-- If `openpyxl` is missing, the CLI can still parse and align in memory, but it cannot write Excel output.
-- `SVG` output for `2D` does not require `openpyxl`.
+- `openpyxl` is required to write the Excel outputs.
