@@ -67,6 +67,12 @@ The new modular CLI is:
 ```bash
 igstrand-align -f src/input.txt -d 1D
 ```
+```bash
+igstrand-align -f src/input.txt -d 2D
+```
+```bash
+igstrand-align -f src/input.txt -d 1D,2D
+```
 
 You can also invoke it directly with Python:
 
